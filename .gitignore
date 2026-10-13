@@ -1,0 +1,12 @@
+# Telegram-сессия = полный доступ к аккаунту
+*.session
+*.session-journal
+
+# личные данные: id чатов
+enabled_chats.json
+
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
