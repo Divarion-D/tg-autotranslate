@@ -12,20 +12,98 @@ Userbot для Telegram, который переводит твои исходя
 
 Обычный бот (Bot API) не может писать от твоего имени. Userbot работает через твой аккаунт (Telethon, клиентский API), поэтому может менять твои сообщения.
 
-## Установка
+## Установка на сервер
+
+Нужен Python 3.9+. Ниже путь `/opt/bot_translator`, подставь свой.
 
 1. Получи `api_id` и `api_hash` на https://my.telegram.org (раздел *API development tools*).
-2. Установи зависимости:
+2. Склонируй проект и создай виртуальное окружение:
    ```bash
-   pip install -r requirements.txt
+   sudo mkdir -p /opt/bot_translator
+   sudo chown $USER: /opt/bot_translator
+   git clone <url-репозитория> /opt/bot_translator
+   cd /opt/bot_translator
+   python3 -m venv venv
+   venv/bin/pip install -r requirements.txt
    ```
-3. Запусти:
+   Если `venv` не создаётся на Debian/Ubuntu: `sudo apt install python3-venv`.
+3. Сохрани ключи в `.env` (он в `.gitignore`):
    ```bash
-   export TG_API_ID=12345
-   export TG_API_HASH=xxxxxxxxxxxxxxxx
-   python main.py
+   echo "TG_API_ID=12345" > .env
+   echo "TG_API_HASH=xxxxxxxxxxxxxxxx" >> .env
+   echo "translators_default_region=EN" >> .env
+   chmod 600 .env
    ```
-   При первом запуске Telethon попросит номер телефона и код из Telegram. После входа появится файл `translator.session`, и дальше вход уже не понадобится.
+   `translators_default_region` нужен, чтобы библиотека `translators` при старте не определяла регион через `geolocation.onetrust.com`: если сервер до него не достучится, бот падает с ошибкой `Unable to find server backend`.
+
+   Если Telegram с сервера недоступен, добавь прокси. Через него пойдёт только подключение к Telegram, переводчики работают напрямую:
+   ```bash
+   echo "TG_PROXY=socks5://user:pass@1.2.3.4:1080" >> .env
+   ```
+   Поддерживаются `socks5://`, `socks4://` и `http://`. Если логина нет, убери `user:pass@`. MTProto-прокси (ссылки `tg://proxy?...`) не поддерживаются.
+4. Первый запуск сделай вручную, чтобы войти в аккаунт:
+   ```bash
+   set -a; . ./.env; set +a
+   venv/bin/python main.py
+   ```
+   Telethon попросит номер телефона и код из Telegram. После входа появится `translator.session`, дальше вход не нужен. Останови бота через `Ctrl+C` и запусти в фоне одним из способов ниже.
+
+### Запуск в фоне через systemd (рекомендуется)
+
+Бот сам поднимется после перезагрузки сервера и перезапустится при падении.
+
+```bash
+sudo tee /etc/systemd/system/bot_translator.service > /dev/null <<EOF
+[Unit]
+Description=Telegram translator userbot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=$USER
+WorkingDirectory=/opt/bot_translator
+EnvironmentFile=/opt/bot_translator/.env
+ExecStart=/opt/bot_translator/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now bot_translator
+```
+
+Управление:
+
+```bash
+sudo systemctl status bot_translator    # состояние
+journalctl -u bot_translator -f         # логи в реальном времени
+sudo systemctl restart bot_translator   # перезапуск (например, после git pull)
+sudo systemctl stop bot_translator      # остановка
+```
+
+### Запуск в фоне без systemd
+
+Если нет root-доступа:
+
+```bash
+cd /opt/bot_translator
+set -a; . ./.env; set +a
+nohup venv/bin/python main.py > bot.log 2>&1 &
+```
+
+Логи: `tail -f bot.log`. Остановка: `pkill -f "venv/bin/python main.py"`. После перезагрузки сервера бот придётся запустить заново.
+
+### Обновление
+
+```bash
+cd /opt/bot_translator
+git pull
+venv/bin/pip install -r requirements.txt
+sudo systemctl restart bot_translator
+```
 
 ## Использование
 
@@ -50,7 +128,7 @@ Userbot для Telegram, который переводит твои исходя
 
 - Собеседник может на мгновение увидеть русский оригинал в push-уведомлении, потому что текст заменяется уже после отправки.
 - Форматирование (жирный текст, курсив, ссылки под словами) при переводе теряется.
-- Перевод работает, только пока скрипт запущен. Чтобы он работал постоянно, запусти его на сервере (systemd, screen, tmux и т.п.).
+- Перевод работает, только пока скрипт запущен. Чтобы он работал постоянно, запусти его на сервере (см. «Установка на сервер»).
 - Telegram разрешает редактировать сообщения только в течение 48 часов, поэтому старые сообщения при правке не переведутся.
 
 ## Безопасность
@@ -60,6 +138,6 @@ Userbot для Telegram, который переводит твои исходя
 ## Файлы
 
 - `main.py`: весь код бота
-- `requirements.txt`: зависимости (`telethon`, `translators`)
+- `requirements.txt`: зависимости (`telethon`, `translators`, `python-socks` для прокси Telegram)
 - `enabled_chats.json`: чаты с включённым переводом (создаётся автоматически)
 - `translator.session`: сессия Telegram (создаётся при первом входе)

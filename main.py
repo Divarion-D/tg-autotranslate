@@ -14,6 +14,7 @@ import logging
 import os
 import re
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import translators as ts
 from telethon import TelegramClient, events
@@ -37,10 +38,25 @@ def translate(text):
     raise RuntimeError("все переводчики недоступны")
 
 
+def parse_proxy(url):
+    # socks5://user:pass@host:port, socks4://host:port или http://host:port
+    if not url:
+        return None
+    p = urlparse(url)
+    return {
+        "proxy_type": p.scheme,
+        "addr": p.hostname,
+        "port": p.port,
+        "username": unquote(p.username) if p.username else None,
+        "password": unquote(p.password) if p.password else None,
+    }
+
+
 client = TelegramClient(
     str(Path(__file__).with_name("translator")),
     int(os.environ["TG_API_ID"]),
     os.environ["TG_API_HASH"],
+    proxy=parse_proxy(os.environ.get("TG_PROXY")),
 )
 
 
