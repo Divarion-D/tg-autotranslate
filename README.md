@@ -1,4 +1,4 @@
-# bot_translator
+# tg-autotranslate
 
 Userbot для Telegram, который переводит твои исходящие сообщения на английский.
 
@@ -14,15 +14,15 @@ Userbot для Telegram, который переводит твои исходя
 
 ## Установка на сервер
 
-Нужен Python 3.9+. Ниже путь `/opt/bot_translator`, подставь свой.
+Нужен Python 3.9+. Ниже путь `/opt/tg-autotranslate`, подставь свой.
 
 1. Получи `api_id` и `api_hash` на https://my.telegram.org (раздел *API development tools*).
 2. Склонируй проект и создай виртуальное окружение:
    ```bash
-   sudo mkdir -p /opt/bot_translator
-   sudo chown $USER: /opt/bot_translator
-   git clone <url-репозитория> /opt/bot_translator
-   cd /opt/bot_translator
+   sudo mkdir -p /opt/tg-autotranslate
+   sudo chown $USER: /opt/tg-autotranslate
+   git clone <url-репозитория> /opt/tg-autotranslate
+   cd /opt/tg-autotranslate
    python3 -m venv venv
    venv/bin/pip install -r requirements.txt
    ```
@@ -53,7 +53,7 @@ Userbot для Telegram, который переводит твои исходя
 Бот сам поднимется после перезагрузки сервера и перезапустится при падении.
 
 ```bash
-sudo tee /etc/systemd/system/bot_translator.service > /dev/null <<EOF
+sudo tee /etc/systemd/system/tg-autotranslate.service > /dev/null <<EOF
 [Unit]
 Description=Telegram translator userbot
 After=network-online.target
@@ -61,9 +61,9 @@ Wants=network-online.target
 
 [Service]
 User=$USER
-WorkingDirectory=/opt/bot_translator
-EnvironmentFile=/opt/bot_translator/.env
-ExecStart=/opt/bot_translator/venv/bin/python main.py
+WorkingDirectory=/opt/tg-autotranslate
+EnvironmentFile=/opt/tg-autotranslate/.env
+ExecStart=/opt/tg-autotranslate/venv/bin/python main.py
 Restart=always
 RestartSec=10
 
@@ -72,16 +72,16 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now bot_translator
+sudo systemctl enable --now tg-autotranslate
 ```
 
 Управление:
 
 ```bash
-sudo systemctl status bot_translator    # состояние
-journalctl -u bot_translator -f         # логи в реальном времени
-sudo systemctl restart bot_translator   # перезапуск (например, после git pull)
-sudo systemctl stop bot_translator      # остановка
+sudo systemctl status tg-autotranslate    # состояние
+journalctl -u tg-autotranslate -f         # логи в реальном времени
+sudo systemctl restart tg-autotranslate   # перезапуск (например, после git pull)
+sudo systemctl stop tg-autotranslate      # остановка
 ```
 
 ### Запуск в фоне без systemd
@@ -89,7 +89,7 @@ sudo systemctl stop bot_translator      # остановка
 Если нет root-доступа:
 
 ```bash
-cd /opt/bot_translator
+cd /opt/tg-autotranslate
 set -a; . ./.env; set +a
 nohup venv/bin/python main.py > bot.log 2>&1 &
 ```
@@ -99,10 +99,10 @@ nohup venv/bin/python main.py > bot.log 2>&1 &
 ### Обновление
 
 ```bash
-cd /opt/bot_translator
+cd /opt/tg-autotranslate
 git pull
 venv/bin/pip install -r requirements.txt
-sudo systemctl restart bot_translator
+sudo systemctl restart tg-autotranslate
 ```
 
 ## Использование
