@@ -1,0 +1,15 @@
+[Unit]
+Description=Telegram userbot: translates outgoing messages to English
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/tg-autotranslate
+EnvironmentFile=/opt/tg-autotranslate/.env
+ExecStart=/opt/tg-autotranslate/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

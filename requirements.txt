@@ -1,3 +1,4 @@
 telethon
 translators
 python-socks[asyncio]
+PySocks

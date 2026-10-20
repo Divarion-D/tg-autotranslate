@@ -16,6 +16,12 @@ import re
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+# socks5://user:pass@host:port — общий прокси для Telegram и переводчиков
+PROXY = os.environ.get("PROXY")
+if PROXY:
+    # translators ходит через requests, а он берёт прокси из окружения; ставим до import
+    os.environ["HTTP_PROXY"] = os.environ["HTTPS_PROXY"] = PROXY
+
 import translators as ts
 from telethon import TelegramClient, events
 
@@ -56,7 +62,7 @@ client = TelegramClient(
     str(Path(__file__).with_name("translator")),
     int(os.environ["TG_API_ID"]),
     os.environ["TG_API_HASH"],
-    proxy=parse_proxy(os.environ.get("TG_PROXY")),
+    proxy=parse_proxy(PROXY),
 )
 
 

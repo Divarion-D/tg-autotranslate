@@ -21,7 +21,7 @@ Userbot для Telegram, который переводит твои исходя
    ```bash
    sudo mkdir -p /opt/tg-autotranslate
    sudo chown $USER: /opt/tg-autotranslate
-   git clone <url-репозитория> /opt/tg-autotranslate
+   git clone https://github.com/Divarion-D/tg-autotranslate.git /opt/tg-autotranslate
    cd /opt/tg-autotranslate
    python3 -m venv venv
    venv/bin/pip install -r requirements.txt
@@ -36,9 +36,9 @@ Userbot для Telegram, который переводит твои исходя
    ```
    `translators_default_region` нужен, чтобы библиотека `translators` при старте не определяла регион через `geolocation.onetrust.com`: если сервер до него не достучится, бот падает с ошибкой `Unable to find server backend`.
 
-   Если Telegram с сервера недоступен, добавь прокси. Через него пойдёт только подключение к Telegram, переводчики работают напрямую:
+   Если Telegram или переводчики с сервера недоступны, добавь прокси. Через него пойдут и подключение к Telegram, и запросы к переводчикам:
    ```bash
-   echo "TG_PROXY=socks5://user:pass@1.2.3.4:1080" >> .env
+   echo "PROXY=socks5://user:pass@1.2.3.4:1080" >> .env
    ```
    Поддерживаются `socks5://`, `socks4://` и `http://`. Если логина нет, убери `user:pass@`. MTProto-прокси (ссылки `tg://proxy?...`) не поддерживаются.
 4. Первый запуск сделай вручную, чтобы войти в аккаунт:
@@ -50,27 +50,12 @@ Userbot для Telegram, который переводит твои исходя
 
 ### Запуск в фоне через systemd (рекомендуется)
 
-Бот сам поднимется после перезагрузки сервера и перезапустится при падении.
+Бот сам поднимется после перезагрузки сервера и перезапустится при падении. Unit-файл лежит в репозитории: `tg-autotranslate.service`. Команда ниже ставит его, подставляя текущую папку и пользователя, поэтому выполняй её из папки проекта:
 
 ```bash
-sudo tee /etc/systemd/system/tg-autotranslate.service > /dev/null <<EOF
-[Unit]
-Description=Telegram translator userbot
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-User=$USER
-WorkingDirectory=/opt/tg-autotranslate
-EnvironmentFile=/opt/tg-autotranslate/.env
-ExecStart=/opt/tg-autotranslate/venv/bin/python main.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+cd /opt/tg-autotranslate
+sed -e "s#/opt/tg-autotranslate#$PWD#g" -e "s#^User=.*#User=$USER#" tg-autotranslate.service \
+  | sudo tee /etc/systemd/system/tg-autotranslate.service > /dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable --now tg-autotranslate
 ```
@@ -138,6 +123,7 @@ sudo systemctl restart tg-autotranslate
 ## Файлы
 
 - `main.py`: весь код бота
-- `requirements.txt`: зависимости (`telethon`, `translators`, `python-socks` для прокси Telegram)
+- `requirements.txt`: зависимости (`telethon`, `translators`, `python-socks` и `PySocks` для прокси)
+- `tg-autotranslate.service`: unit-файл systemd для запуска в фоне
 - `enabled_chats.json`: чаты с включённым переводом (создаётся автоматически)
 - `translator.session`: сессия Telegram (создаётся при первом входе)
